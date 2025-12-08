@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nexus AI | LDO Ultimate</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #050507;
+      --panel-bg: rgba(20, 20, 25, 0.6);
+      --border: rgba(255, 255, 255, 0.08);
+      --accent-primary: #3b82f6; 
+      --accent-secondary: #8b5cf6; 
+      --accent-glow: rgba(59, 130, 246, 0.5);
+      --text-main: #ECECEC;
+      --text-muted: #94949b;
+      
+      --bubble-user: linear-gradient(135deg, #2563eb, #7c3aed);
+      --bubble-ai: rgba(255, 255, 255, 0.03);
+
+      --font-main: "Inter", sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+    
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 80px 1fr 350px; 
+    }
+
+    .bg-noise {
+      position: fixed; inset: 0; pointer-events: none; z-index: -1;
+      opacity: 0.05;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    .bg-glow {
+      position: fixed; inset: 0; z-index: -2;
+      background: 
+        radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 40%),
+        radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15), transparent 40%);
+      filter: blur(60px);
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    .sidebar {
+      border-right: 1px solid var(--border);
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      display: flex; flex-direction: column; align-items: center; padding: 24px 0;
+      z-index: 10;
+    }
+    .logo-box {
+      width: 48px; height: 48px; 
+      background: linear-gradient(135deg, #fff, #aaa);
+      color: #000; border-radius: 12px;
+      display: grid; place-items: center; font-weight: 800; font-family: var(--font-mono);
+      font-size: 14px; margin-bottom: 40px;
+      box-shadow: 0 0 20px rgba(255,255,255,0.2);
+    }
+    .nav-btn {
+      width: 44px; height: 44px; margin-bottom: 16px;
+      border-radius: 12px; color: var(--text-muted);
+      display: grid; place-items: center; font-size: 22px; cursor: pointer;
+      transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .nav-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .nav-btn.active { color: var(--accent-primary); background: rgba(59, 130, 246, 0.1); }
+    .nav-btn.active::before {
+      content: ''; position: absolute; left: -18px; width: 4px; height: 20px;
+      background: var(--accent-primary); border-radius: 0 4px 4px 0;
+      box-shadow: 0 0 10px var(--accent-primary);
+    }
+
+    .main-area {
+      position: relative;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      height: 80px; padding: 0 40px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(5, 5, 7, 0.8); backdrop-filter: blur(10px);
+      z-index: 5;
+    }
+    .header-info h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    .header-info span { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+    
+    .chat-container {
+      flex: 1; overflow-y: auto; padding: 40px 15% 120px; 
+      display: flex; flex-direction: column; gap: 24px;
+      scroll-behavior: smooth;
+    }
+
+    .msg { display: flex; width: 100%; animation: slideIn 0.4s ease forwards; opacity: 0; transform: translateY(10px); }
+    @keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
+
+    .msg.user { justify-content: flex-end; }
+    .msg.ai { justify-content: flex-start; }
+
+    .bubble {
+      max-width: 80%; padding: 20px 28px;
+      border-radius: 24px; font-size: 16px; line-height: 1.7;
+      position: relative; backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    
+    .msg.user .bubble {
+      background: var(--bubble-user);
+      color: white; border-bottom-right-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .msg.ai .bubble {
+      background: var(--bubble-ai);
+      color: var(--text-main); border-bottom-left-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .msg.ai .avatar {
+      position: absolute; left: -45px; bottom: 0;
+      width: 36px; height: 36px; border-radius: 10px;
+      background: #fff; color: #000;
+      display: grid; place-items: center; font-weight: bold; font-size: 12px;
+      box-shadow: 0 0 15px rgba(255,255,255,0.3);
+    }
+
+    .bubble p { margin-bottom: 12px; } .bubble p:last-child { margin-bottom: 0; }
+    .bubble code { font-family: var(--font-mono); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 6px; font-size: 14px; }
+    .bubble pre { margin: 16px 0; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+    .bubble pre code { display: block; padding: 16px; background: #0d0d11; color: #ccc; overflow-x: auto; }
+
+    .input-zone {
+      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 800px;
+      z-index: 10;
+    }
+    .input-wrapper {
+      background: rgba(20, 20, 25, 0.7);
+      backdrop-filter: blur(25px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 10px 10px 10px 24px;
+      display: flex; align-items: flex-end;
+      box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .input-wrapper:focus-within {
+      border-color: rgba(59, 130, 246, 0.5);
+      box-shadow: 0 20px 60px -10px rgba(59, 130, 246, 0.15);
+    }
+    textarea {
+      flex: 1; background: transparent; border: none;
+      color: #fff; font-family: var(--font-main); font-size: 16px;
+      padding: 12px 0; resize: none; max-height: 150px;
+    }
+    textarea::placeholder { color: rgba(255,255,255,0.3); }
+    
+    .btn-send {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: #fff; color: #000; border: none;
+      font-size: 20px; display: grid; place-items: center; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-left: 12px;
+    }
+    .btn-send:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,255,255,0.4); }
+
+    .context-panel {
+      border-left: 1px solid var(--border);
+      background: rgba(10, 10, 12, 0.4);
+      display: flex; flex-direction: column;
+      backdrop-filter: blur(10px);
+    }
+    .ctx-header {
+      height: 80px; padding: 0 24px; display: flex; align-items: center;
+      font-family: var(--font-mono); font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-muted); font-weight: 700;
+      border-bottom: 1px solid var(--border);
+    }
+    .file-list { padding: 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+    
+    .file-item {
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 16px;
+      transition: 0.3s; cursor: pointer;
+      position: relative; overflow: hidden;
+    }
+    .file-item:hover { border-color: rgba(255,255,255,0.3); transform: translateY(-2px); }
+    .file-item::before {
+      content:''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+      transform: translateX(-100%); transition: 0.5s;
+    }
+    .file-item:hover::before { transform: translateX(100%); }
+
+    .fi-top { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .fi-icon { color: var(--accent-primary); font-size: 20px; }
+    .fi-score { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 20px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); }
+    
+    .fi-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: #fff; }
+    .fi-snippet { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+
+    .typing { display: flex; gap: 4px; padding: 10px 0; }
+    .typing span { width: 5px; height: 5px; background: var(--text-muted); border-radius: 50%; animation: pulse 1.5s infinite; }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+  </style>
+</head>
+<body>
+
+  <div class="bg-noise"></div>
+  <div class="bg-glow"></div>
+
+  <aside class="sidebar">
+    <div class="logo-box">LDO</div>
+  </aside>
+
+  <main class="main-area">
+    <header class="chat-header">
+      <div class="header-info">
+        <h1>Nexus AI</h1>
+        <span>v2.4.0 • Мы старались для вас)))</span>
+      </div>
+    </header>
+
+    <div class="chat-container" id="chat">
+      <div class="msg ai">
+        <div class="avatar">AI</div>
+        <div class="bubble">
+          <p><strong>Система готова.</strong> 🚀</p>
+          <p>Я загрузил контекст проекта <code>LDO_Web_Platform</code>. Готов работать с базой данных и роутингом Flask.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-zone">
+      <div class="input-wrapper">
+        <textarea id="inp" rows="1" placeholder="Задайте вопрос по проекту..."></textarea>
+        <button class="btn-send" id="btn"><i class="ph-bold ph-paper-plane-right"></i></button>
+      </div>
+    </div>
+  </main>
+
+  <aside class="context-panel">
+    <div class="ctx-header">RAG Context / Files</div>
+    <div class="file-list" id="files">
+      <div class="file-item">
+        <div class="fi-top">
+          <i class="ph-fill ph-code fi-icon"></i>
+          <span class="fi-score" style="color: #4ade80">98% Match</span>
+        </div>
+        <div class="fi-name">models.py</div>
+        <div class="fi-snippet">class User(db.Model): id = db.Column(db.Integer...</div>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    marked.setOptions({
+      highlight: (code, lang) => hljs.highlight(code, { language: lang || 'plaintext' }).value
+    });
+
+    const chat = document.getElementById('chat');
+    const inp = document.getElementById('inp');
+    const btn = document.getElementById('btn');
+    const files = document.getElementById('files');
+    let busy = false;
+
+    inp.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+    });
+
+    function typeText(el, text) {
+      el.innerHTML = marked.parse(text);
+      document.querySelectorAll('pre code').forEach((b) => hljs.highlightElement(b));
+    }
+
+    function showFiles(sources) {
+      files.innerHTML = '';
+      if (!sources || !sources.length) {
+        files.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">Нет активного контекста</div>`;
+        return;
+      }
+      
+      sources.forEach(src => {
+        let col = '#4ade80'; 
+        if(src.score < 70) col = '#fbbf24';
+        if(src.score < 50) col = '#f87171';
+
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.innerHTML = `
+          <div class="fi-top">
+            <i class="ph-fill ph-file-text fi-icon" style="color:${col}"></i>
+            <span class="fi-score" style="color:${col}">${src.score}% Relevance</span>
+          </div>
+          <div class="fi-name">${src.name}</div>
+          <div class="fi-snippet">${src.snippet ? src.snippet.substring(0, 80) + "..." : "..."}</div>
+        `;
+        files.appendChild(div);
+      });
+    }
+
+    function msg(text, user, load=false) {
+      const row = document.createElement('div');
+      row.className = `msg ${user ? 'user' : 'ai'}`;
+      if(load) row.id = 'load';
+
+      if(!user) {
+        const av = document.createElement('div');
+        av.className = 'avatar'; av.innerText = 'AI';
+        row.appendChild(av);
+      }
+
+      const bub = document.createElement('div');
+      bub.className = 'bubble';
+      row.appendChild(bub);
+      chat.appendChild(row);
+      
+      chat.scrollTop = chat.scrollHeight;
+
+      if (load) {
+        bub.innerHTML = `<div class="typing"><span></span><span></span><span></span></div>`;
+        return;
+      }
+
+      if (user) bub.innerHTML = marked.parse(text);
+      else typeText(bub, text);
+    }
+
+    async function send() {
+      const text = inp.value.trim();
+      if (!text || busy) return;
+      busy = true;
+      msg(text, true);
+      inp.value = ''; inp.style.height = 'auto';
+      
+      msg('', false, true); 
+
+      try {
+        const req = await fetch('/api/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const res = await req.json();
+        
+        const loader = document.getElementById('load');
+        if(loader) loader.remove();
+
+        if (res.error) {
+           msg('Error: ' + res.error, false);
+        } else {
+           msg(res.response, false);
+           showFiles(res.sources);
+        }
+      } catch (e) {
+        const loader = document.getElementById('load');
+        if(loader) loader.remove();
+        setTimeout(() => {
+            msg("Сервер не отвечает (демо режим). Попробуйте подключить Python backend.", false);
+        }, 500);
+      }
+      busy = false; inp.focus();
+    }
+
+    btn.onclick = send;
+    inp.onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }};
+  </script>
+</body>
+</html>
