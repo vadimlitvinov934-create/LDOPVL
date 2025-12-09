@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"name": "templates",
+			"path": "../../../../Desktop/Хакатон/templates"
+		},
+		{
+			"name": "__pycache__",
+			"path": "../../../../Desktop/Хакатон/__pycache__"
+		},
+		{
+			"name": "LDOPVL",
+			"path": ".."
+		},
+		{
+			"name": "data",
+			"path": "../../../../Desktop/Хакатон/data"
+		}
+	],
+	"settings": {}
+}
