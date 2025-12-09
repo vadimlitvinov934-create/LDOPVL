@@ -16,7 +16,6 @@ class RAG:
         self.db = []  
         self.limit = 0.45 
         
-        # Файл, куда сохраняем "мозги" чтобы не грузить каждый раз
         self.CACHE_FILE = "vector_store.json"
         
         self.faq = {}
@@ -29,11 +28,9 @@ class RAG:
         except:
             self.faq = {}
 
-    # --- КЭШИРОВАНИЕ (ДЛЯ СКОРОСТИ) ---
     def save_cache(self):
-        print("💾 Сохраняю базу в файл...", end="")
+        print(" Сохраняю базу в файл...", end="")
         try:
-            # Numpy массив нельзя сохранить в JSON, переводим в список
             serializable_db = []
             for item in self.db:
                 serializable_db.append({
@@ -50,30 +47,27 @@ class RAG:
 
     def load_cache(self):
         if os.path.exists(self.CACHE_FILE):
-            print(f"⚡ Найден кэш! Загружаю мгновенно...")
+            print(f" Найден кэш! Загружаю мгновенно...")
             try:
                 with open(self.CACHE_FILE, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                 
                 self.db = []
                 for item in data:
-                    # Переводим список обратно в Numpy для математики
                     item['vec'] = np.array(item['vec'])
                     self.db.append(item)
                 
-                print(f"✅ База восстановлена! Фрагментов: {len(self.db)}\n")
+                print(f" База восстановлена! Фрагментов: {len(self.db)}\n")
                 return True 
             except Exception as e:
-                print(f"⚠️ Ошибка кэша: {e}")
+                print(f" Ошибка кэша: {e}")
         return False
 
     def load_data(self, path):
-        # 1. Пытаемся загрузить кэш (СКОРОСТЬ)
         if self.load_cache():
             return 
 
-        # 2. Если кэша нет — сканируем файлы (ДОЛГО)
-        print(f"\n📂 Кэша нет. Сканирую папку: {path}")
+        print(f"\n Кэша нет. Сканирую папку: {path}")
         if not os.path.exists(path):
             print("Папки нет!")
             return
@@ -98,7 +92,6 @@ class RAG:
                 else:
                     print(f"- {name}")
         
-        # 3. После сканирования — сохраняем!
         if self.db:
             self.save_cache()
             
@@ -119,7 +112,6 @@ class RAG:
         except Exception as e:
             print(f"Ошибка API: {e}")
 
-    # --- ИСПРАВЛЕНИЕ ОШИБОК ---
     def fix_text(self, text):
         if len(text) < 3: return text
         prompt = f"Исправь опечатки в тексте: '{text}'. Верни ТОЛЬКО исправленный текст."
@@ -146,9 +138,8 @@ class RAG:
             return raw
 
     def ask(self, user_query):
-        # 1. Исправляем ошибки
         query = self.fix_text(user_query)
-        print(f"Запрос: {user_query} -> {query}") # Для отладки
+        print(f"Запрос: {user_query} -> {query}")
 
         if self.is_greeting(query):
             try:
