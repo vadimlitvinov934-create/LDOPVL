@@ -4,7 +4,7 @@ from rag_engine import RAG
 
 app = Flask(__name__)
 
-KEY = 'AIzaSyBVgHNeMGk4L6Pfebo1GCkS8W0Mr8OiJtc'
+KEY = 'AIzaSyDkNP4CgpMfh2WFBOTLHtdVTq5ok-grNRs'
 
 print(">>> Запуск LDO Brain...")
 brain = RAG(KEY)

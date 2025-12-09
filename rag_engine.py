@@ -8,7 +8,7 @@ class RAG:
     def __init__(self, key):
         genai.configure(api_key=key)
         self.chat_model = genai.GenerativeModel(
-            'gemini-2.0-flash',
+            'gemini-2.5-pro',
             generation_config=genai.types.GenerationConfig(temperature=0.3)
         ) 
         self.embed_model = 'models/text-embedding-004'
